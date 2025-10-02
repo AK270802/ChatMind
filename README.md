@@ -1,3 +1,12 @@
+---
+title: ChatMind
+emoji: "🤖"
+colorFrom: "blue"
+colorTo: "green"
+app_file: "Dockerfile"
+pinned: false
+---
+
 # ChatMind - Trading Journal & Analysis Platform
 
 A comprehensive trading journal and analysis platform with AI-powered insights, social features, and broker integration.
