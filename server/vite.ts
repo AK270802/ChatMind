@@ -89,11 +89,22 @@ export function serveStatic(app: Express) {
   const files = fs.readdirSync(distPath);
   console.log(`📄 Files in dist/public:`, files);
 
-  app.use(express.static(distPath));
+  // Serve static files with proper headers
+  app.use(express.static(distPath, {
+    maxAge: '1d', // Cache static assets for 1 day
+    etag: true,
+    lastModified: true
+  }));
 
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
-    console.log(`🔄 Serving index.html for catch-all route`);
+  // fall through to index.html for SPA routing (but not for assets)
+  app.use("*", (req, res) => {
+    // Don't serve index.html for asset requests
+    if (req.path.startsWith('/assets/') || req.path.includes('.')) {
+      console.log(`❌ Asset not found: ${req.path}`);
+      return res.status(404).send('Asset not found');
+    }
+    
+    console.log(`🔄 Serving index.html for SPA route: ${req.path}`);
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }

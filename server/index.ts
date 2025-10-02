@@ -124,23 +124,6 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Ensure we respond to ALL requests (fallback)
-  app.use('*', (req, res) => {
-    console.log(`🔄 Fallback route triggered for: ${req.method} ${req.originalUrl}`);
-    res.status(200).send(`
-      <html>
-        <head><title>ChatMind</title></head>
-        <body>
-          <h1>ChatMind is running!</h1>
-          <p>Server is up and running on port ${process.env.PORT || '5000'}</p>
-          <p>Time: ${new Date().toISOString()}</p>
-          <p><a href="/health">Health Check</a></p>
-          <p><a href="/test">Test Endpoint</a></p>
-        </body>
-      </html>
-    `);
-  });
-
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
