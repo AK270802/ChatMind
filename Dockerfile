@@ -43,7 +43,6 @@ RUN adduser --system --uid 1001 nodejs
 
 # Copy built files
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/client/dist ./client/dist
 COPY --from=builder /app/node_modules ./node_modules
 
 # Set permissions
