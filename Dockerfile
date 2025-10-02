@@ -24,6 +24,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 
 # Copy source code
+# Cache invalidation: 2025-10-02-fix-static-path
 COPY . .
 
 # Build the application (both frontend and backend)
