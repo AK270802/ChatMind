@@ -10,13 +10,8 @@ RUN apk add --no-cache libc6-compat
 FROM base AS deps
 WORKDIR /app
 
-# Copy root package.json for backend
+# Copy package.json and install dependencies
 COPY package.json package-lock.json* ./
-RUN npm ci
-
-# Install frontend dependencies
-WORKDIR /app/client
-COPY client/package.json client/package-lock.json* ./
 RUN npm ci
 
 # =======================
@@ -27,16 +22,11 @@ WORKDIR /app
 
 # Copy node_modules from deps
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/client/node_modules ./client/node_modules
 
 # Copy source code
 COPY . .
 
-# Build backend
-RUN npm run build
-
-# Build frontend
-WORKDIR /app/client
+# Build the application (both frontend and backend)
 RUN npm run build
 
 # =======================
@@ -51,7 +41,7 @@ ENV NODE_ENV production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nodejs
 
-# Copy built backend and frontend
+# Copy built files
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/client/dist ./client/dist
 COPY --from=builder /app/node_modules ./node_modules
