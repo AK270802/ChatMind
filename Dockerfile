@@ -54,8 +54,8 @@ RUN chmod +x start.sh
 # Set permissions
 USER nodejs
 
-EXPOSE 5000
-ENV PORT 5000
+EXPOSE 10000
+ENV PORT 10000
 ENV NODE_ENV=production
 
 # Use startup script

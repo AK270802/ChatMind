@@ -111,6 +111,14 @@ app.use((req, res, next) => {
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
+    
+    console.error(`❌ Server error:`, {
+      status,
+      message,
+      stack: err.stack,
+      path: _req.path,
+      method: _req.method
+    });
 
     res.status(status).json({ message });
   });
@@ -125,10 +133,10 @@ app.use((req, res, next) => {
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
+  // Other ports are firewalled. Default to 10000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-const port = parseInt(process.env.PORT || '5000', 10);
+const port = parseInt(process.env.PORT || '10000', 10);
 
 server.listen(port, '0.0.0.0', () => {
   console.log(`🚀 Server running on http://0.0.0.0:${port}`);
