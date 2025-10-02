@@ -7,8 +7,11 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+// In production, API calls should go to the same domain (relative URLs)
+// In development, we can use VITE_API_BASE_URL if set
+const API_BASE = import.meta.env.MODE === 'production' ? "" : (import.meta.env.VITE_API_BASE_URL || "");
 console.log("API_BASE:", API_BASE);
+console.log("Environment:", import.meta.env.MODE);
 
 export async function apiRequest(
   method: string,
