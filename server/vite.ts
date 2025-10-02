@@ -89,22 +89,32 @@ export function serveStatic(app: Express) {
   const files = fs.readdirSync(distPath);
   console.log(`📄 Files in dist/public:`, files);
 
-  // Serve static files with proper headers
-  app.use(express.static(distPath, {
-    maxAge: '1d', // Cache static assets for 1 day
-    etag: true,
-    lastModified: true
-  }));
+  // List files in assets directory specifically
+  const assetsPath = path.resolve(distPath, "assets");
+  if (fs.existsSync(assetsPath)) {
+    const assetFiles = fs.readdirSync(assetsPath);
+    console.log(`📦 Asset files:`, assetFiles);
+  }
 
-  // fall through to index.html for SPA routing (but not for assets)
-  app.use("*", (req, res) => {
-    // Don't serve index.html for asset requests
-    if (req.path.startsWith('/assets/') || req.path.includes('.')) {
-      console.log(`❌ Asset not found: ${req.path}`);
-      return res.status(404).send('Asset not found');
-    }
+  // Serve static files from the public directory
+  app.use(express.static(distPath));
+
+  // Handle asset requests specifically
+  app.get('/assets/*', (req, res) => {
+    const assetPath = path.resolve(distPath, req.path.substring(1)); // Remove leading /
+    console.log(`📦 Serving asset: ${req.path} -> ${assetPath}`);
     
-    console.log(`🔄 Serving index.html for SPA route: ${req.path}`);
+    if (fs.existsSync(assetPath)) {
+      res.sendFile(assetPath);
+    } else {
+      console.log(`❌ Asset not found: ${assetPath}`);
+      res.status(404).send('Asset not found');
+    }
+  });
+
+  // Serve index.html for all other routes (SPA routing)
+  app.get('*', (req, res) => {
+    console.log(`🔄 Serving index.html for route: ${req.path}`);
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
