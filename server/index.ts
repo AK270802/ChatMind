@@ -28,7 +28,9 @@ app.use(cors({
       'http://localhost:5173', 
       'http://localhost:3000',
       'https://huggingface.co',
-      'https://*.hf.space'
+      'https://*.hf.space',
+      'https://chatmind-m2rf.onrender.com', // Render domain
+      'https://*.onrender.com' // Any Render subdomain
     ];
     
     // Check if origin matches any allowed pattern
@@ -39,6 +41,8 @@ app.use(cors({
       }
       return origin === allowed;
     });
+    
+    console.log(`🌐 CORS check for origin: ${origin}, allowed: ${isAllowed}`);
     
     if (isAllowed) {
       callback(null, true);
