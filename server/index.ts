@@ -59,6 +59,11 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Root endpoint that serves the app
+app.get('/', (req, res) => {
+  res.sendFile(path.resolve(__dirname, '../dist/public/index.html'));
+});
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -115,6 +120,9 @@ app.use((req, res, next) => {
 const port = parseInt(process.env.PORT || '5000', 10);
 
 server.listen(port, '0.0.0.0', () => {
-  console.log(`Server running on http://0.0.0.0:${port}`);
+  console.log(`🚀 Server running on http://0.0.0.0:${port}`);
+  console.log(`✅ Health check available at http://0.0.0.0:${port}/health`);
+  console.log(`🌐 App available at http://0.0.0.0:${port}/`);
+  console.log(`📊 Ready to serve ChatMind application!`);
 });
 })();
