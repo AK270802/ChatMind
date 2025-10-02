@@ -46,11 +46,17 @@ RUN adduser --system --uid 1001 nodejs
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/start.sh ./start.sh
+
+# Make startup script executable
+RUN chmod +x start.sh
 
 # Set permissions
 USER nodejs
 
 EXPOSE 5000
 ENV PORT 5000
+ENV NODE_ENV=production
 
-CMD ["node", "dist/index.js"]
+# Use startup script
+CMD ["./start.sh"]

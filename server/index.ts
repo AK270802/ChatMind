@@ -152,5 +152,14 @@ server.listen(port, '0.0.0.0', () => {
   console.log(`✅ Health check available at http://0.0.0.0:${port}/health`);
   console.log(`🌐 App available at http://0.0.0.0:${port}/`);
   console.log(`📊 Ready to serve ChatMind application!`);
+  
+  // Test the server immediately
+  setTimeout(() => {
+    console.log(`🧪 Testing server endpoints...`);
+    fetch(`http://localhost:${port}/health`)
+      .then(res => res.json())
+      .then(data => console.log(`✅ Health check test:`, data))
+      .catch(err => console.log(`❌ Health check test failed:`, err.message));
+  }, 1000);
 });
 })();
