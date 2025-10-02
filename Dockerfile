@@ -1,5 +1,5 @@
-# Use Node.js 18 as base image
-FROM node:18-alpine AS base
+# Use Node.js 20 as base image for better ESM compatibility
+FROM node:20-alpine AS base
 
 # Install libc6-compat
 RUN apk add --no-cache libc6-compat
