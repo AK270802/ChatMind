@@ -97,37 +97,28 @@ export function serveStatic(app: Express) {
   }
 
   // Serve static files from the public directory with proper error handling
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/assets/')) {
+      console.log(`📦 Static middleware handling: ${req.path}`);
+    }
+    next();
+  });
+
   app.use(express.static(distPath, {
     maxAge: '1y', // Cache static assets for 1 year
     etag: true,
     lastModified: true,
     setHeaders: (res, path) => {
+      console.log(`📦 Serving static file: ${path}`);
       // Set proper MIME types
       if (path.endsWith('.js')) {
         res.setHeader('Content-Type', 'application/javascript');
       } else if (path.endsWith('.css')) {
         res.setHeader('Content-Type', 'text/css');
       }
-    }
+    },
+    fallthrough: false // Don't fall through to next middleware if file not found
   }));
-
-  // Handle asset requests specifically with better error handling
-  app.get('/assets/*', (req, res, next) => {
-    try {
-      const assetPath = path.resolve(distPath, req.path.substring(1)); // Remove leading /
-      console.log(`📦 Serving asset: ${req.path} -> ${assetPath}`);
-      
-      if (fs.existsSync(assetPath)) {
-        res.sendFile(assetPath);
-      } else {
-        console.log(`❌ Asset not found: ${assetPath}`);
-        res.status(404).json({ error: 'Asset not found' });
-      }
-    } catch (error) {
-      console.error(`❌ Error serving asset ${req.path}:`, error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  });
 
   // Serve index.html for all other routes (SPA routing)
   app.get('*', (req, res, next) => {

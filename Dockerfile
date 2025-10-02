@@ -48,8 +48,10 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/start.sh ./start.sh
 
-# Make startup script executable
-RUN chmod +x start.sh
+# Make startup script executable and set proper permissions
+RUN chmod +x start.sh && \
+    chown -R nodejs:nodejs /app && \
+    chmod -R 755 /app/dist
 
 # Set permissions
 USER nodejs
