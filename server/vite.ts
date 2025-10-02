@@ -117,7 +117,7 @@ export function serveStatic(app: Express) {
         res.setHeader('Content-Type', 'text/css');
       }
     },
-    fallthrough: false // Don't fall through to next middleware if file not found
+    fallthrough: true // Allow fallthrough to SPA routing for non-static files
   }));
 
   // Serve index.html for all other routes (SPA routing)
