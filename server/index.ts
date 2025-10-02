@@ -59,12 +59,8 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Root endpoint that serves the app
-app.get('/', (req, res) => {
-  res.sendFile(path.resolve(__dirname, '../dist/public/index.html'));
-});
-
 app.use((req, res, next) => {
+  console.log(`📥 Incoming request: ${req.method} ${req.path}`);
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;

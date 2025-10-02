@@ -76,16 +76,24 @@ export function serveStatic(app: Express) {
   const __dirname = path.dirname(__filename);
   const distPath = path.resolve(__dirname, "..", "dist", "public");
 
+  console.log(`📁 Static files path: ${distPath}`);
+  console.log(`📁 Directory exists: ${fs.existsSync(distPath)}`);
+
   if (!fs.existsSync(distPath)) {
     throw new Error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`,
     );
   }
 
+  // List files in the directory for debugging
+  const files = fs.readdirSync(distPath);
+  console.log(`📄 Files in dist/public:`, files);
+
   app.use(express.static(distPath));
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
+    console.log(`🔄 Serving index.html for catch-all route`);
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
