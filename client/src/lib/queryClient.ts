@@ -17,6 +17,11 @@ if (import.meta.env.MODE === 'production' || API_BASE.includes('localhost')) {
   API_BASE = "";
 }
 
+// Fallback to Render URL if API_BASE is empty and we're on Render
+if (!API_BASE && window.location.hostname.includes('onrender.com')) {
+  API_BASE = "https://chatmind-m2rf.onrender.com";
+}
+
 console.log("API_BASE:", API_BASE);
 console.log("Environment:", import.meta.env.MODE);
 console.log("VITE_API_BASE_URL:", import.meta.env.VITE_API_BASE_URL);
