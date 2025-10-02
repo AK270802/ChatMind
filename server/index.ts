@@ -59,6 +59,21 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Simple test endpoint
+app.get('/test', (req, res) => {
+  res.status(200).send('Hello from ChatMind!');
+});
+
+// API status endpoint
+app.get('/api/status', (req, res) => {
+  res.status(200).json({ 
+    status: 'running', 
+    app: 'ChatMind',
+    timestamp: new Date().toISOString(),
+    port: process.env.PORT || '5000'
+  });
+});
+
 app.use((req, res, next) => {
   console.log(`📥 Incoming request: ${req.method} ${req.path}`);
   const start = Date.now();
@@ -108,6 +123,23 @@ app.use((req, res, next) => {
   } else {
     serveStatic(app);
   }
+
+  // Ensure we respond to ALL requests (fallback)
+  app.use('*', (req, res) => {
+    console.log(`🔄 Fallback route triggered for: ${req.method} ${req.originalUrl}`);
+    res.status(200).send(`
+      <html>
+        <head><title>ChatMind</title></head>
+        <body>
+          <h1>ChatMind is running!</h1>
+          <p>Server is up and running on port ${process.env.PORT || '5000'}</p>
+          <p>Time: ${new Date().toISOString()}</p>
+          <p><a href="/health">Health Check</a></p>
+          <p><a href="/test">Test Endpoint</a></p>
+        </body>
+      </html>
+    `);
+  });
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.
