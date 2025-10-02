@@ -1,15 +1,15 @@
-//import dotenv from "dotenv";
-//import path from "path";
-//import { fileURLToPath } from "url";
-//
-//// ESM-compatible __dirname
-//const __filename = fileURLToPath(import.meta.url);
-//const __dirname = path.dirname(__filename);
-//
-//// Load .env from project root
-//dotenv.config({ path: path.resolve(__dirname, "../.env") });
-//
-//console.log("DATABASE_URL =", process.env.DATABASE_URL);
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+
+// ESM-compatible __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load .env from project root
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+
+console.log("DATABASE_URL =", process.env.DATABASE_URL);
 
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
