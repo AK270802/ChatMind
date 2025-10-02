@@ -1,0 +1,290 @@
+import { Router, Request, Response } from "express";
+import { db } from "../db";
+import { trades } from "@shared/schema";
+import { tradeTaggingService, TradeTaggingResult } from "../services/tradeTagging";
+import { eq, and, desc } from "drizzle-orm";
+import { Trade } from "@shared/schema";
+
+const router = Router();
+
+/**
+ * GET /api/trade-tagging/tags
+ * Get all available trade tags
+ */
+router.get("/tags", async (req: Request, res: Response) => {
+  try {
+    const { category, type, query } = req.query;
+    
+    let tags;
+    
+    if (query) {
+      tags = tradeTaggingService.searchTags(query as string);
+    } else if (category) {
+      tags = tradeTaggingService.getTagsByCategory(category as string);
+    } else if (type) {
+      tags = tradeTaggingService.getTagsByType(type as string);
+    } else {
+      tags = tradeTaggingService.getTagsByCategory();
+    }
+    
+    res.json({
+      success: true,
+      data: tags,
+      total: tags.length
+    });
+  } catch (error) {
+    console.error("Error fetching tags:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch tags"
+    });
+  }
+});
+
+/**
+ * POST /api/trade-tagging/analyze/:tradeId
+ * Analyze a specific trade and suggest tags
+ */
+router.post("/analyze/:tradeId", async (req: Request, res: Response) => {
+  try {
+    const { tradeId } = req.params;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: "Unauthorized"
+      });
+    }
+    
+    // Fetch the trade
+    const trade = await db
+      .select()
+      .from(trades)
+      .where(and(eq(trades.id, parseInt(tradeId)), eq(trades.userId, userId)))
+      .limit(1);
+    
+    if (!trade.length) {
+      return res.status(404).json({
+        success: false,
+        error: "Trade not found"
+      });
+    }
+    
+    // Get user context (recent trades for pattern analysis)
+    const recentTrades = await db
+      .select()
+      .from(trades)
+      .where(and(eq(trades.userId, userId), eq(trades.status, 'closed')))
+      .orderBy(desc(trades.exitDate))
+      .limit(10);
+    
+    // Analyze the trade
+    const result: TradeTaggingResult = await tradeTaggingService.analyzeTrade(
+      trade[0] as Trade,
+      { recentTrades }
+    );
+    
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error("Error analyzing trade:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to analyze trade"
+    });
+  }
+});
+
+/**
+ * POST /api/trade-tagging/batch-analyze
+ * Analyze multiple trades and suggest tags
+ */
+router.post("/batch-analyze", async (req: Request, res: Response) => {
+  try {
+    const { tradeIds } = req.body;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: "Unauthorized"
+      });
+    }
+    
+    if (!Array.isArray(tradeIds) || tradeIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid trade IDs provided"
+      });
+    }
+    
+    // Fetch the trades
+    const userTrades = await db
+      .select()
+      .from(trades)
+      .where(and(eq(trades.userId, userId), eq(trades.status, 'closed')));
+    
+    const tradesToAnalyze = userTrades.filter(trade => tradeIds.includes(trade.id));
+    
+    if (tradesToAnalyze.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "No valid trades found"
+      });
+    }
+    
+    // Get user context (recent trades for pattern analysis)
+    const recentTrades = await db
+      .select()
+      .from(trades)
+      .orderBy(desc(trades.exitDate))
+      .limit(20);
+    
+    // Analyze each trade
+    const results: TradeTaggingResult[] = [];
+    for (const trade of tradesToAnalyze as Trade[]) {
+      const result = await tradeTaggingService.analyzeTrade(trade, { recentTrades });
+      results.push(result);
+    }
+    
+    res.json({
+      success: true,
+      data: results,
+      total: results.length
+    });
+  } catch (error) {
+    console.error("Error in batch analysis:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to analyze trades"
+    });
+  }
+});
+
+/**
+ * GET /api/trade-tagging/categories
+ * Get all tag categories
+ */
+router.get("/categories", async (req: Request, res: Response) => {
+  try {
+    const allTags = tradeTaggingService.getTagsByCategory();
+    const categories = Array.from(new Set(allTags.map(tag => tag.category)));
+    
+    const categoryData = categories.map(category => {
+      const categoryTags = allTags.filter(tag => tag.category === category);
+      return {
+        category,
+        description: `${category} tags for trade analysis`,
+        count: categoryTags.length,
+        types: Array.from(new Set(categoryTags.map(tag => tag.type))),
+        tags: categoryTags
+      };
+    });
+    
+    res.json({
+      success: true,
+      data: categoryData,
+      total: categories.length
+    });
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch categories"
+    });
+  }
+});
+
+/**
+ * GET /api/trade-tagging/stats
+ * Get user's tagging statistics
+ */
+router.get("/stats", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: "Unauthorized"
+      });
+    }
+    
+    const userTrades = await db
+      .select({
+        id: trades.id,
+        symbol: trades.symbol,
+        type: trades.type,
+        quantity: trades.quantity,
+        entryPrice: trades.entryPrice,
+        exitPrice: trades.exitPrice,
+        pnl: trades.pnl,
+        status: trades.status,
+        entryDate: trades.entryDate,
+        exitDate: trades.exitDate,
+        tags: trades.tags
+      })
+      .from(trades)
+      .where(eq(trades.userId, userId));
+    
+    // Calculate statistics
+    const stats = {
+      totalTrades: userTrades.length,
+      taggedTrades: userTrades.filter((trade: { tags?: string[]; }) => trade.tags && Array.isArray(trade.tags) && trade.tags.length > 0).length,
+      closedTrades: userTrades.filter((trade: { status: string; }) => trade.status === 'closed').length,
+      mostUsedTags: {} as Record<string, number>,
+      tagDistribution: {} as Record<string, number>,
+      avgTagsPerTrade: 0,
+      recentTaggingActivity: [] as Array<{
+        date: string;
+        tradesTagged: number;
+      }>
+    };
+    
+    // Count tag usage
+    userTrades.forEach((trade: { tags?: any[]; }) => {
+      if (trade.tags && Array.isArray(trade.tags)) {
+        trade.tags.forEach((tag: any) => {
+          const tagValue = typeof tag === 'string' ? tag : tag.value || tag;
+          stats.mostUsedTags[tagValue] = (stats.mostUsedTags[tagValue] || 0) + 1;
+        });
+      }
+    });
+    
+    // Get top tags
+    const sortedTags = Object.entries(stats.mostUsedTags)
+      .sort(([, a], [, b]) => (b as number) - (a as number))
+      .slice(0, 10);
+    
+    stats.mostUsedTags = Object.fromEntries(sortedTags);
+    
+    // Calculate average tags per trade
+    const totalTags = Object.values(stats.mostUsedTags).reduce((sum, count) => sum + count, 0);
+    stats.avgTagsPerTrade = stats.taggedTrades > 0 ? totalTags / stats.taggedTrades : 0;
+    
+    // Calculate tag distribution by category
+    const allTags = tradeTaggingService.getTagsByCategory();
+    allTags.forEach((tag: any) => {
+      const tagValue = tag.value || tag;
+      if (stats.mostUsedTags[tagValue]) {
+        stats.tagDistribution[tag.category] = (stats.tagDistribution[tag.category] || 0) + stats.mostUsedTags[tagValue];
+      }
+    });
+    
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error("Error fetching stats:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch statistics"
+    });
+  }
+});
+
+export default router;

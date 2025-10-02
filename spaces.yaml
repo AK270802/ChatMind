@@ -1,0 +1,8 @@
+title: ChatMind Trading Platform
+emoji: 📈
+colorFrom: blue
+colorTo: purple
+sdk: docker
+pinned: false
+license: mit
+app_port: 5000

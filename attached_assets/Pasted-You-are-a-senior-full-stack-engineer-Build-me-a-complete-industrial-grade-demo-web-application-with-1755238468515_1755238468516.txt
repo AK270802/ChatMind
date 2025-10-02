@@ -1,0 +1,64 @@
+You are a senior full-stack engineer. Build me a complete industrial-grade demo web application with:
+
+Purpose: Trade journaling + stock broker features with simulated EOD (End of Day) trade analysis and coaching integration.
+
+Frontend:
+
+Next.js + TailwindCSS (responsive, dark mode toggle, glassmorphism style, premium UI).
+
+Pages: Landing Page, Dashboard, Trade Journal, Analysis Reports, Subscription Page, User Profile, Admin Panel.
+
+Charts: Use Chart.js for analytics visualization.
+
+Authentication: Implement JWT-based email/password auth using static token simulation (no Google login). Store in-memory or in DB.
+
+Backend:
+
+Node.js + Express.
+
+REST API for all features.
+
+Endpoints for: User Auth, Trade Upload, EOD Analysis, Subscription Management, Feedback.
+
+Connect to PostgreSQL with Drizzle ORM and a proper schema for:
+
+Users
+
+Trades
+
+Feedback
+
+Subscriptions (mock data)
+
+Features:
+
+Upload trades via CSV/Excel, parse and save in DB.
+
+Store and query trade history.
+
+Auto-generate daily loss/mistake report using a placeholder AI function that returns static sample text. Include a comment where OpenAI API code would go if keys were available.
+
+Subscription & payment: static mock data only (design code so Stripe API can be added later, but now just return sample subscription status).
+
+Admin panel for coaches to view student trades, analysis, and give feedback (stored in DB).
+
+Deployment & Constraints:
+
+
+If any feature normally needs an API key, create a implementation using OLLAMA.
+
+Keep code modular and ready for real API integration later.
+
+Code Quality:
+
+Modular folder structure (frontend, backend, db, utils).
+
+Fully commented.
+
+.env support with placeholder values.
+
+Provide full working codebase and installation instructions.
+
+Ensure the app runs locally without any manual external configuration.
+
+Goal: A fully functional demo that looks like a production system, but works entirely with static/mock data where API keys would be needed, so it can be upgraded to real integrations later.
