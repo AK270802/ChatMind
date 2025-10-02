@@ -32,6 +32,10 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
+    // Ensure production build doesn't include development configurations
+    define: {
+      'import.meta.env.MODE': JSON.stringify(process.env.NODE_ENV || 'production')
+    }
   },
   server: {
     fs: {

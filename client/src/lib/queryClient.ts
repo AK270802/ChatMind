@@ -9,9 +9,18 @@ async function throwIfResNotOk(res: Response) {
 
 // In production, API calls should go to the same domain (relative URLs)
 // In development, we can use VITE_API_BASE_URL if set
-const API_BASE = import.meta.env.MODE === 'production' ? "" : (import.meta.env.VITE_API_BASE_URL || "");
+// Force empty API_BASE in production to prevent localhost:5000 issues
+let API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+
+// Override if we're in production or if API_BASE contains localhost
+if (import.meta.env.MODE === 'production' || API_BASE.includes('localhost')) {
+  API_BASE = "";
+}
+
 console.log("API_BASE:", API_BASE);
 console.log("Environment:", import.meta.env.MODE);
+console.log("VITE_API_BASE_URL:", import.meta.env.VITE_API_BASE_URL);
+console.log("All env vars:", import.meta.env);
 
 export async function apiRequest(
   method: string,
@@ -22,7 +31,15 @@ export async function apiRequest(
     ? url
     : `${API_BASE}${url}`;
 
-  const res = await fetch(fullUrl, {
+  console.log(`🌐 API Request: ${method} ${url} -> ${fullUrl}`);
+  console.log(`🌐 API_BASE: "${API_BASE}"`);
+  console.log(`🌐 URL starts with http: ${url.startsWith("http")}`);
+
+  // Additional safety check - if fullUrl contains localhost, force it to be relative
+  const finalUrl = fullUrl.includes('localhost') ? url : fullUrl;
+  console.log(`🌐 Final URL: ${finalUrl}`);
+
+  const res = await fetch(finalUrl, {
 
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
