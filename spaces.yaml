@@ -6,3 +6,4 @@ sdk: docker
 pinned: false
 license: mit
 app_port: 5000
+health_check: /health
