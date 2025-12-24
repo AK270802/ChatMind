@@ -4,11 +4,12 @@ import {
   LinearScale,
   PointElement,
   Tooltip,
-  Legend
+  Legend,
+  ScatterController
 } from "chart.js";
 import { Scatter } from "react-chartjs-2";
 
-ChartJS.register(LinearScale, PointElement, Tooltip, Legend);
+ChartJS.register(ScatterController, LinearScale, PointElement, Tooltip, Legend);
 
 interface RiskRewardChartProps {
   data: Array<{ risk: number; reward: number; symbol: string; pnl: number }>;
