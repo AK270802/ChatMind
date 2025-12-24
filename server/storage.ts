@@ -225,7 +225,10 @@ export class DatabaseStorage implements IStorage {
     return newReport.id;
   }
 
-  // Coach-Student relationships
+  async deleteAnalysisReport(reportId: string): Promise<void> {
+    await db.delete(aiAnalysisReports).where(eq(aiAnalysisReports.id, reportId));
+  }
+
   async getStudentsByCoach(coachId: string): Promise<User[]> {
     const result = await db
       .select()

@@ -10,7 +10,8 @@ import {
   Title,
   Tooltip,
   Legend,
-  Filler
+  Filler,
+  ScatterController
 } from "chart.js";
 import { Chart } from "react-chartjs-2";
 
@@ -19,6 +20,7 @@ ChartJS.register(
   LinearScale,
   PointElement,
   LineElement,
+  ScatterController,
   Title,
   Tooltip,
   Legend,

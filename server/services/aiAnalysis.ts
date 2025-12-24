@@ -43,7 +43,7 @@ export interface AIAnalysisResult {
 }
 
 /**
- * Enhanced AI analysis function with Ollama integration, coach personas, and explainable AI
+ * Enhanced AI analysis function with Multi-Model integration (OpenRouter/OpenAI/Gemini), coach personas, and explainable AI
  * Provides contextual analysis for Indian traders with multiple coaching approaches
  */
 export async function generateAIAnalysis(
@@ -499,59 +499,164 @@ function generateHTMLReport(data: any): string {
 <head>
     <title>${data.title}</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-        .header { text-align: center; margin-bottom: 30px; }
-        .section { margin-bottom: 25px; }
-        .metric { display: inline-block; margin: 10px; padding: 10px; border: 1px solid #ddd; }
-        .insight { margin: 10px 0; padding: 10px; background-color: #f5f5f5; }
-        .recommendation { margin: 5px 0; }
-        .positive { color: green; }
-        .warning { color: orange; }
-        .suggestion { color: blue; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 40px; 
+            background-color: #0f172a; 
+            color: #e2e8f0; 
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .header { 
+            text-align: center; 
+            margin-bottom: 40px; 
+            padding-bottom: 20px;
+            border-bottom: 1px solid #334155;
+        }
+        h1 { color: #f8fafc; margin-bottom: 10px; }
+        h2 { color: #94a3b8; margin-bottom: 20px; border-left: 4px solid #3b82f6; padding-left: 10px; }
+        .meta { color: #64748b; font-size: 0.9em; }
+        
+        .card {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        .metric-item {
+            background-color: #0f172a;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+        }
+        .metric-label { color: #64748b; font-size: 0.85em; display: block; margin-bottom: 5px; }
+        .metric-value { color: #f8fafc; font-size: 1.2em; font-weight: bold; }
+        
+        .insight-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #0f172a;
+            border-radius: 8px;
+            border: 1px solid #334155;
+        }
+        .insight-icon { margin-right: 15px; font-size: 1.2em; }
+        .insight-content { flex: 1; }
+        .positive { border-left: 4px solid #10b981; }
+        .warning { border-left: 4px solid #f59e0b; }
+        .suggestion { border-left: 4px solid #3b82f6; }
+        
+        .list-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #334155;
+            color: #cbd5e1;
+        }
+        .list-item:last-child { border-bottom: none; }
+        
+        .tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 0.8em;
+            background-color: #3b82f6;
+            color: white;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>${data.title}</h1>
-        <p>Generated: ${new Date(data.generatedAt).toLocaleString()}</p>
-        <p>AI Model: ${data.modelUsed}</p>
+    <div class="container">
+        <div class="header">
+            <h1>${data.title}</h1>
+            <div class="meta">
+                <p>Generated: ${new Date(data.generatedAt).toLocaleString()}</p>
+                <p>Model: ${data.modelUsed} ${data.coachPersona ? `| Coach: ${data.coachPersona.name}` : ''}</p>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>Trading Metrics</h2>
+            <div class="metrics-grid">
+                <div class="metric-item">
+                    <span class="metric-label">Win Rate</span>
+                    <span class="metric-value">${data.metrics.winRate}%</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Profit Factor</span>
+                    <span class="metric-value">${data.metrics.profitFactor}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Avg Winner</span>
+                    <span class="metric-value" style="color: #10b981">$${data.metrics.avgWinningTrade}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Avg Loser</span>
+                    <span class="metric-value" style="color: #ef4444">$${data.metrics.avgLosingTrade}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Risk/Reward</span>
+                    <span class="metric-value">${data.metrics.riskRewardRatio}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Max Drawdown</span>
+                    <span class="metric-value">${data.metrics.maxDrawdown}%</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>Key Insights</h2>
+            ${data.insights.map((insight: any) => 
+              `<div class="insight-item ${insight.type}">
+                <div class="insight-icon">${insight.icon || (insight.type === 'positive' ? '🎯' : insight.type === 'warning' ? '⚠️' : '💡')}</div>
+                <div class="insight-content">
+                    <div style="font-weight: bold; margin-bottom: 5px; text-transform: capitalize; color: ${
+                        insight.type === 'positive' ? '#34d399' : 
+                        insight.type === 'warning' ? '#fbbf24' : '#60a5fa'
+                    }">${insight.type}</div>
+                    <div>${insight.message}</div>
+                </div>
+              </div>`
+            ).join('')}
+        </div>
+        
+        <div class="card">
+            <h2>Recommendations</h2>
+            ${data.recommendations.map((rec: string) => 
+              `<div class="list-item">• ${rec}</div>`
+            ).join('')}
+        </div>
+        
+        ${data.improvements && data.improvements.length > 0 ? `
+        <div class="card" style="border-color: #ef4444; background-color: rgba(239, 68, 68, 0.05);">
+            <h2 style="color: #f87171; border-color: #ef4444;">Areas for Improvement</h2>
+            ${data.improvements.map((imp: string) => 
+              `<div class="list-item">• ${imp}</div>`
+            ).join('')}
+        </div>
+        ` : ''}
+
+        ${data.marketContext && data.marketContext.length > 0 ? `
+        <div class="card">
+            <h2>Market Context</h2>
+            <div style="color: #94a3b8; line-height: 1.6;">
+                ${data.marketContext[0]}
+            </div>
+        </div>
+        ` : ''}
     </div>
-    
-    <div class="section">
-        <h2>Trading Metrics</h2>
-        <div class="metric">Win Rate: ${data.metrics.winRate}%</div>
-        <div class="metric">Avg Winning Trade: $${data.metrics.avgWinningTrade}</div>
-        <div class="metric">Avg Losing Trade: $${data.metrics.avgLosingTrade}</div>
-        <div class="metric">Profit Factor: ${data.metrics.profitFactor}</div>
-        <div class="metric">Risk-Reward Ratio: ${data.metrics.riskRewardRatio}</div>
-        <div class="metric">Max Drawdown: ${data.metrics.maxDrawdown}%</div>
-        <div class="metric">Avg Holding Period: ${data.metrics.avgHoldingPeriod} days</div>
-    </div>
-    
-    <div class="section">
-        <h2>Key Insights</h2>
-        ${data.insights.map((insight: any) => 
-          `<div class="insight ${insight.type}">
-            <strong>${insight.type.toUpperCase()}:</strong> ${insight.message}
-          </div>`
-        ).join('')}
-    </div>
-    
-    <div class="section">
-        <h2>Recommendations</h2>
-        ${data.recommendations.map((rec: string) => 
-          `<div class="recommendation">• ${rec}</div>`
-        ).join('')}
-    </div>
-    
-    ${data.improvements && data.improvements.length > 0 ? `
-    <div class="section">
-        <h2>Areas for Improvement</h2>
-        ${data.improvements.map((imp: string) => 
-          `<div class="recommendation">• ${imp}</div>`
-        ).join('')}
-    </div>
-    ` : ''}
 </body>
 </html>
   `;

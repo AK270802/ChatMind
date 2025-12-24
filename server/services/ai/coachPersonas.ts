@@ -1,4 +1,4 @@
-import { OllamaMessage } from './ollamaClient';
+import { AIMessage } from './multiModelClient';
 
 export interface CoachPersona {
   id: string;
@@ -262,13 +262,13 @@ export function adaptPromptForPersona(
   persona: CoachPersona, 
   trades: any[], 
   context?: any
-): OllamaMessage[] {
-  const systemMessage: OllamaMessage = {
+): AIMessage[] {
+  const systemMessage: AIMessage = {
     role: 'system',
     content: persona.systemPrompt
   };
 
-  const userMessage: OllamaMessage = {
+  const userMessage: AIMessage = {
     role: 'user',
     content: basePrompt
   };

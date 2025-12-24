@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import MentorCard, { MentorProfile as ComponentMentorProfile, TimeSlot } from "@/components/social/mentor-card";
 import { 
   Users, 
   Star, 
@@ -21,7 +22,7 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
-interface MentorProfile {
+interface ApiMentorProfile {
   id: string;
   userId: string;
   bio: string;
@@ -97,26 +98,13 @@ export default function MentorshipPage() {
   const [selectedTab, setSelectedTab] = useState("mentors");
   const [selectedSpecialization, setSelectedSpecialization] = useState("all");
 
-  const { data: mentors = [], isLoading: mentorsLoading } = useQuery<MentorProfile[]>({
+  const { data: mentors = [], isLoading: mentorsLoading } = useQuery<ApiMentorProfile[]>({
     queryKey: ["/api/mentorship/mentors"],
   });
 
   const { data: sessions = [], isLoading: sessionsLoading } = useQuery<MentorshipSession[]>({
     queryKey: ["/api/mentorship/sessions"],
   });
-
-  const getVerificationBadge = (status: string) => {
-    switch (status) {
-      case "verified":
-        return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Verified</Badge>;
-      case "pending":
-        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Pending</Badge>;
-      case "rejected":
-        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Rejected</Badge>;
-      default:
-        return <Badge variant="outline">Unknown</Badge>;
-    }
-  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -157,6 +145,96 @@ export default function MentorshipPage() {
   ) : [];
 
   const completedSessions = Array.isArray(sessions) ? sessions.filter(session => session.status === "completed") : [];
+
+  const parseTimeSlot = (slotStr: string): TimeSlot | null => {
+    // Expected format: "Day HH:mm - HH:mm" or "Day HH:mm-HH:mm"
+    // e.g. "Mon 10:00 - 12:00"
+    try {
+      const parts = slotStr.split(' ');
+      const dayStr = parts[0];
+      const timeRange = slotStr.substring(dayStr.length).trim();
+      const [start, end] = timeRange.split('-').map(t => t.trim());
+      
+      const days: Record<string, number> = {
+        'Sun': 0, 'Sunday': 0,
+        'Mon': 1, 'Monday': 1,
+        'Tue': 2, 'Tuesday': 2,
+        'Wed': 3, 'Wednesday': 3,
+        'Thu': 4, 'Thursday': 4,
+        'Fri': 5, 'Friday': 5,
+        'Sat': 6, 'Saturday': 6
+      };
+      
+      const dayOfWeek = days[dayStr] ?? days[dayStr.substring(0, 3)] ?? 0;
+      
+      return {
+        dayOfWeek,
+        startTime: start,
+        endTime: end
+      };
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const mapToComponentProfile = (apiMentor: ApiMentorProfile): ComponentMentorProfile => {
+    return {
+      id: apiMentor.id,
+      userId: apiMentor.userId,
+      username: apiMentor.user.firstName ? `${apiMentor.user.firstName} ${apiMentor.user.lastName || ''}`.trim() : apiMentor.user.username,
+      bio: apiMentor.bio,
+      specializations: apiMentor.specializations,
+      experience: apiMentor.experience,
+      verificationStatus: apiMentor.verificationStatus as 'pending' | 'verified' | 'rejected',
+      credentials: {
+        sebiRegistered: apiMentor.credentials?.sebiRegistered,
+        certifications: apiMentor.credentials?.certifications || [],
+        achievements: apiMentor.credentials?.achievements || [],
+        brokerConnections: apiMentor.credentials?.brokerConnections || []
+      },
+      stats: {
+        totalStudents: apiMentor.stats.totalStudents,
+        averageRating: apiMentor.stats.rating,
+        totalReviews: apiMentor.stats.completedSessions, // Using completed sessions as proxy for reviews count if not available
+        successRate: 95, // Mock data or add to API
+        totalMentoringHours: apiMentor.stats.completedSessions * 1 // Assuming 1 hr per session
+      },
+      pricing: {
+        hourlyRate: apiMentor.pricing.hourlyRate,
+        packageDiscounts: Object.entries(apiMentor.pricing.packageDiscounts || {}).map(([hours, discount]) => ({
+          hours: parseInt(hours),
+          discount: discount as number
+        }))
+      },
+      availability: {
+        timezone: apiMentor.availability.timezone,
+        availableSlots: apiMentor.availability.timeSlots
+          .map(parseTimeSlot)
+          .filter((slot): slot is TimeSlot => slot !== null)
+      },
+      socialProof: {
+        testimonials: (apiMentor.socialProof.testimonials || []).map((t, i) => ({
+          id: `t-${i}`,
+          studentId: 'unknown',
+          studentName: t.studentName,
+          content: t.comment,
+          rating: t.rating,
+          createdAt: new Date(t.date),
+          isVerified: true
+        })),
+        caseStudies: (apiMentor.socialProof.caseStudies || []).map((c, i) => ({
+          id: `c-${i}`,
+          title: c.title,
+          description: c.description,
+          challenge: '',
+          solution: '',
+          results: c.results,
+          tags: [],
+          createdAt: new Date()
+        }))
+      }
+    };
+  };
 
   return (
     <div className="min-h-screen pt-20 pb-8">
@@ -251,78 +329,12 @@ export default function MentorshipPage() {
                 ))
               ) : (filteredMentors?.length || 0) > 0 ? (
                 filteredMentors.map((mentor) => (
-                  <Card key={mentor.id} className="glass border-white/10 hover:border-blue-500/30 transition-all">
-                    <CardContent className="p-6">
-                      <div className="flex items-start space-x-4">
-                        <div className="h-16 w-16 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 flex items-center justify-center">
-                          <span className="text-xl font-bold text-white">
-                            {mentor.user.firstName?.charAt(0) || mentor.user.username.charAt(0)}
-                          </span>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <h3 className="font-semibold text-lg">
-                              {mentor.user.firstName ? `${mentor.user.firstName} ${mentor.user.lastName || ''}`.trim() : mentor.user.username}
-                            </h3>
-                            {mentor.featured && (
-                              <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
-                                <Star className="h-3 w-3 mr-1" />
-                                Featured
-                              </Badge>
-                            )}
-                          </div>
-                          
-                          <div className="flex items-center space-x-2 mb-3">
-                            {getVerificationBadge(mentor.verificationStatus)}
-                            <Badge variant="outline" className="text-xs">
-                              {mentor.experience} years exp
-                            </Badge>
-                          </div>
-
-                          <p className="text-slate-300 text-sm mb-4 line-clamp-3">{mentor.bio}</p>
-
-                          <div className="space-y-2 mb-4">
-                            <div className="flex items-center space-x-2">
-                              <Star className="h-4 w-4 text-yellow-400" />
-                              <span className="text-sm text-slate-300">
-                                {mentor.stats.rating.toFixed(1)} ({mentor.stats.completedSessions} sessions)
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Users className="h-4 w-4 text-blue-400" />
-                              <span className="text-sm text-slate-300">
-                                {mentor.stats.totalStudents} students
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <DollarSign className="h-4 w-4 text-emerald-400" />
-                              <span className="text-sm text-slate-300">
-                                ₹{mentor.pricing.hourlyRate}/hour
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-wrap gap-1 mb-4">
-                            {mentor.specializations.slice(0, 3).map((spec) => (
-                              <Badge key={spec} variant="outline" className="text-xs">
-                                {spec}
-                              </Badge>
-                            ))}
-                            {mentor.specializations.length > 3 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{mentor.specializations.length - 3} more
-                              </Badge>
-                            )}
-                          </div>
-
-                          <Button className="w-full bg-blue-600 hover:bg-blue-500">
-                            <MessageCircle className="h-4 w-4 mr-2" />
-                            Book Session
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <MentorCard 
+                    key={mentor.id} 
+                    mentor={mapToComponentProfile(mentor)}
+                    onBook={(id) => console.log('Book session with', id)}
+                    onViewProfile={(id) => console.log('View profile of', id)}
+                  />
                 ))
               ) : (
                 <div className="col-span-full text-center py-12">

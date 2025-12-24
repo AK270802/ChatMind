@@ -64,6 +64,8 @@ export const aiAnalysisReports = pgTable("ai_analysis_reports", {
   improvements: jsonb("improvements"), // areas for improvement
   recommendations: jsonb("recommendations").notNull(),
   metrics: jsonb("metrics").notNull(),
+  modelUsed: text("model_used"),
+  coachPersona: jsonb("coach_persona"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`)
 });
 

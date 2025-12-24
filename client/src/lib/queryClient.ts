@@ -22,10 +22,10 @@ if (!API_BASE && window.location.hostname.includes('onrender.com')) {
   API_BASE = "https://chatmind-m2rf.onrender.com";
 }
 
-console.log("API_BASE:", API_BASE);
-console.log("Environment:", import.meta.env.MODE);
+// console.log("API_BASE:", API_BASE);
+// console.log("Environment:", import.meta.env.MODE);
 console.log("VITE_API_BASE_URL:", import.meta.env.VITE_API_BASE_URL);
-console.log("All env vars:", import.meta.env);
+// console.log("All env vars:", import.meta.env);
 
 export async function apiRequest(
   method: string,
@@ -36,9 +36,9 @@ export async function apiRequest(
     ? url
     : `${API_BASE}${url}`;
 
-  console.log(`🌐 API Request: ${method} ${url} -> ${fullUrl}`);
-  console.log(`🌐 API_BASE: "${API_BASE}"`);
-  console.log(`🌐 URL starts with http: ${url.startsWith("http")}`);
+  // console.log(`🌐 API Request: ${method} ${url} -> ${fullUrl}`);
+  // console.log(`🌐 API_BASE: "${API_BASE}"`);
+  // console.log(`🌐 URL starts with http: ${url.startsWith("http")}`);
 
   // Additional safety check - if fullUrl contains localhost, force it to be relative
   const finalUrl = fullUrl.includes('localhost') ? url : fullUrl;

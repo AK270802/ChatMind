@@ -360,6 +360,9 @@ router.get("/sessions", requireAuth, async (req: Request, res: Response) => {
       whereConditions.push(eq(mentorshipSessions.status, status as string));
     }
 
+    const mentorUser = alias(users, "mentorUser");
+    const studentUser = alias(users, "studentUser");
+
     const sessions = await typedDb
       .select({
         id: mentorshipSessions.id,
@@ -377,21 +380,21 @@ router.get("/sessions", requireAuth, async (req: Request, res: Response) => {
         paymentStatus: mentorshipSessions.paymentStatus,
         createdAt: mentorshipSessions.createdAt,
         mentor: {
-          id: users.id,
-          username: users.username,
-          firstName: users.firstName,
-          lastName: users.lastName
+          id: mentorUser.id,
+          username: mentorUser.username,
+          firstName: mentorUser.firstName,
+          lastName: mentorUser.lastName
         },
         student: {
-          id: users.id,
-          username: users.username,
-          firstName: users.firstName,
-          lastName: users.lastName
+          id: studentUser.id,
+          username: studentUser.username,
+          firstName: studentUser.firstName,
+          lastName: studentUser.lastName
         }
       })
       .from(mentorshipSessions)
-      .leftJoin(users, eq(mentorshipSessions.mentorId, users.id))
-      .leftJoin(users, eq(mentorshipSessions.studentId, users.id))
+      .leftJoin(mentorUser, eq(mentorshipSessions.mentorId, mentorUser.id))
+      .leftJoin(studentUser, eq(mentorshipSessions.studentId, studentUser.id))
       .where(and(...whereConditions))
       .orderBy(desc(mentorshipSessions.scheduledAt))
       .limit(Number(limit))

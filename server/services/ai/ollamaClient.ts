@@ -20,53 +20,59 @@ export interface OllamaResponse {
 }
 
 export class OllamaClient {
-  private baseUrl: string;
+  private apiKey: string;
   private model: string;
+  private siteUrl: string;
+  private siteName: string;
 
-  constructor(baseUrl: string = 'http://localhost:11434', model: string = 'llama2') {
-    this.baseUrl = baseUrl;
+  constructor(baseUrl: string = '', model: string = process.env.OPENROUTER_MODEL || 'xiaomi/mimo-v2-flash') {
+    this.apiKey = process.env.OPENROUTER_API_KEY || '';
     this.model = model;
+    this.siteUrl = process.env.FRONTEND_URL || 'http://localhost:5000';
+    this.siteName = 'ChatMind';
   }
 
   async generateResponse(messages: OllamaMessage[]): Promise<string> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/generate`, {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`,
+          'HTTP-Referer': this.siteUrl,
+          'X-Title': this.siteName,
         },
         body: JSON.stringify({
           model: this.model,
-          prompt: messages.map(msg => `${msg.role}: ${msg.content}`).join('\n'),
-          stream: false,
-          options: {
-            temperature: 0.7,
-            top_p: 0.9,
-            max_tokens: 1000,
-          }
+          messages: messages,
+          temperature: 0.7,
+          top_p: 0.9,
+          include_reasoning: true
         })
       });
 
       if (!response.ok) {
-        throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
+        throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
       }
 
-      const data: OllamaResponse = await response.json();
-      return data.response;
+      const data = await response.json();
+      const choice = data.choices[0];
+      let content = choice.message.content;
+      
+      if (choice.message.reasoning) {
+        content = `<reasoning>\n${choice.message.reasoning}\n</reasoning>\n\n${content}`;
+      }
+      
+      return content;
     } catch (error) {
-      console.error('Ollama API call failed:', error);
-      // Fallback to mock response if Ollama is not available
+      console.error('OpenRouter API call failed:', error);
+      // Fallback to mock response if API is not available
       return this.generateFallbackResponse(messages);
     }
   }
 
   async isAvailable(): Promise<boolean> {
-    try {
-      const response = await fetch(`${this.baseUrl}/api/tags`);
-      return response.ok;
-    } catch {
-      return false;
-    }
+    return !!this.apiKey;
   }
 
   private generateFallbackResponse(messages: OllamaMessage[]): string {

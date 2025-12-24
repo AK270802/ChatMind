@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import BadgeDisplay, { Badge as ComponentBadge } from "@/components/social/badge-display";
 import { 
   Trophy, 
   Award, 
@@ -70,36 +71,6 @@ export default function GamificationPage() {
     queryKey: ["/api/gamification/badges"],
   });
 
-  const getRarityColor = (rarity: string) => {
-    switch (rarity) {
-      case "common":
-        return "bg-gray-500/20 text-gray-400 border-gray-500/30";
-      case "rare":
-        return "bg-blue-500/20 text-blue-400 border-blue-500/30";
-      case "epic":
-        return "bg-purple-500/20 text-purple-400 border-purple-500/30";
-      case "legendary":
-        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
-      default:
-        return "bg-gray-500/20 text-gray-400 border-gray-500/30";
-    }
-  };
-
-  const getRarityIcon = (rarity: string) => {
-    switch (rarity) {
-      case "common":
-        return <Medal className="h-4 w-4" />;
-      case "rare":
-        return <Award className="h-4 w-4" />;
-      case "epic":
-        return <Gem className="h-4 w-4" />;
-      case "legendary":
-        return <Crown className="h-4 w-4" />;
-      default:
-        return <Medal className="h-4 w-4" />;
-    }
-  };
-
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case "trading":
@@ -133,6 +104,46 @@ export default function GamificationPage() {
   const totalPoints = earnedBadges.reduce((sum, badge) => sum + (badge.badge?.points || 0), 0);
   const totalBadges = earnedBadges.length;
   const totalAchievements = Array.isArray(userAchievements) ? userAchievements.length : 0;
+
+  const mapToComponentBadge = (userBadgeOrBadge: any, isUserBadge: boolean): ComponentBadge => {
+    const badgeData = isUserBadge ? userBadgeOrBadge.badge : userBadgeOrBadge;
+    const progress = isUserBadge ? userBadgeOrBadge.progress : {};
+    
+    // Calculate progress percentage
+    let progressPercentage = 0;
+    if (progress && badgeData.requirements) {
+       // Simple calculation: average of all requirement progress
+       // This logic should ideally match backend calculation or be simplified
+       // For now, let's assume 'target' is in requirements and current is in progress
+       const keys = Object.keys(badgeData.requirements);
+       if (keys.length > 0) {
+         const total = keys.reduce((acc, key) => {
+            const target = badgeData.requirements[key];
+            const current = progress[key] || 0;
+            return acc + Math.min((current / target), 1);
+         }, 0);
+         progressPercentage = (total / keys.length) * 100;
+       }
+    }
+
+    // Use pre-calculated progress if available (backend logic from routes/gamification.ts calculates it? No, it just returns raw progress object)
+    // Wait, the API response for user badges has 'progress' object. 
+    // We need to pass a number 0-100 to the component for `progress`.
+    
+    return {
+      id: badgeData.id,
+      name: badgeData.name,
+      description: badgeData.description,
+      icon: badgeData.icon,
+      category: badgeData.category as any,
+      rarity: badgeData.rarity as any,
+      requirements: [], // Placeholder as component doesn't strictly display them in list
+      points: badgeData.points,
+      earned: isUserBadge ? !!userBadgeOrBadge.earnedAt : false,
+      earnedAt: isUserBadge && userBadgeOrBadge.earnedAt ? new Date(userBadgeOrBadge.earnedAt) : undefined,
+      progress: progressPercentage
+    };
+  };
 
   return (
     <div className="min-h-screen pt-20 pb-8">
@@ -275,35 +286,10 @@ export default function GamificationPage() {
             ) : filteredEarnedBadges.length > 0 ? (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredEarnedBadges.map((userBadge) => (
-                  <div
+                  <BadgeDisplay
                     key={userBadge.id}
-                    className="p-4 bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border border-emerald-500/30 rounded-lg hover:from-emerald-500/20 hover:to-blue-500/20 transition-all"
-                  >
-                    <div className="flex items-start space-x-3">
-                      <div className="p-2 bg-emerald-500/20 rounded-lg">
-                        <span className="text-2xl">{userBadge.badge.icon}</span>
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <h3 className="font-semibold text-emerald-400">{userBadge.badge.name}</h3>
-                          <Badge className={`text-xs ${getRarityColor(userBadge.badge.rarity)}`}>
-                            {getRarityIcon(userBadge.badge.rarity)}
-                            <span className="ml-1 capitalize">{userBadge.badge.rarity}</span>
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-slate-300 mb-2">{userBadge.badge.description}</p>
-                        <div className="flex items-center justify-between">
-                          <Badge variant="outline" className="text-xs">
-                            {getCategoryIcon(userBadge.badge.category)}
-                            <span className="ml-1 capitalize">{userBadge.badge.category}</span>
-                          </Badge>
-                          <div className="text-xs text-slate-400">
-                            {userBadge.earnedAt && new Date(userBadge.earnedAt).toLocaleDateString()}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    badge={mapToComponentBadge(userBadge, true)}
+                  />
                 ))}
               </div>
             ) : (
@@ -338,54 +324,21 @@ export default function GamificationPage() {
             ) : filteredAvailableBadges.length > 0 ? (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredAvailableBadges.map((badge) => {
+                  // Find if user has progress for this badge
                   const userBadge = userBadges.find(ub => ub.badgeId === badge.id);
-                  const progress = userBadge?.progress || {};
+                  const badgeWithProgress = {
+                     badge: badge,
+                     progress: userBadge?.progress || {}
+                  };
+                  // If userBadge exists but not earned, use mapToComponentBadge with isUserBadge=true (sort of)
+                  // Or just construct it manually
                   
                   return (
-                    <div
+                    <BadgeDisplay
                       key={badge.id}
-                      className="p-4 bg-slate-800/30 border border-slate-700/50 rounded-lg hover:bg-slate-800/50 transition-all"
-                    >
-                      <div className="flex items-start space-x-3">
-                        <div className="p-2 bg-slate-700/50 rounded-lg">
-                          <span className="text-2xl opacity-50">{badge.icon}</span>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <h3 className="font-semibold text-slate-300">{badge.name}</h3>
-                            <Badge className={`text-xs ${getRarityColor(badge.rarity)}`}>
-                              {getRarityIcon(badge.rarity)}
-                              <span className="ml-1 capitalize">{badge.rarity}</span>
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-slate-400 mb-3">{badge.description}</p>
-                          
-                          {/* Progress Bar */}
-                          {userBadge && (
-                            <div className="mb-2">
-                              <div className="flex justify-between text-xs text-slate-400 mb-1">
-                                <span>Progress</span>
-                                <span>{Math.round((progress.current || 0) / (badge.requirements.target || 1) * 100)}%</span>
-                              </div>
-                              <Progress 
-                                value={(progress.current || 0) / (badge.requirements.target || 1) * 100} 
-                                className="h-2"
-                              />
-                            </div>
-                          )}
-                          
-                          <div className="flex items-center justify-between">
-                            <Badge variant="outline" className="text-xs">
-                              {getCategoryIcon(badge.category)}
-                              <span className="ml-1 capitalize">{badge.category}</span>
-                            </Badge>
-                            <div className="text-xs text-slate-400">
-                              {badge.points} pts
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                      badge={mapToComponentBadge(userBadge ? userBadge : { badge: badge, progress: {} }, !!userBadge)}
+                      showProgress={true}
+                    />
                   );
                 })}
               </div>

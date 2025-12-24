@@ -41,7 +41,7 @@ interface MentorProfile {
   };
 }
 
-interface TimeSlot {
+export interface TimeSlot {
   dayOfWeek: number; // 0-6 (Sunday-Saturday)
   startTime: string; // HH:mm format
   endTime: string; // HH:mm format
@@ -286,4 +286,4 @@ const MentorCard: React.FC<MentorCardProps> = ({
 };
 
 export default MentorCard;
-export type { MentorProfile, TimeSlot, Testimonial, CaseStudy, MentorCardProps };
+export type { MentorProfile, Testimonial, CaseStudy, MentorCardProps };

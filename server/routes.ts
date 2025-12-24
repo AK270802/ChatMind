@@ -242,7 +242,7 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ 
         message: "Error generating analysis", 
         error: error instanceof Error ? error.message : 'Unknown error',
-        details: 'Check if Ollama is running locally or configure OpenAI/Gemini API keys'
+        details: 'Check if OpenRouter/OpenAI/Gemini API keys are configured correctly'
       });
     }
   });
@@ -253,6 +253,22 @@ export function registerRoutes(app: Express): Server {
       res.json(reports);
     } catch (error) {
       res.status(500).json({ message: "Error fetching analysis reports" });
+    }
+  });
+
+  app.delete("/api/analysis/reports/:id", requireAuth, async (req, res) => {
+    try {
+      const reportId = req.params.id;
+      const report = await storage.getAnalysisReport(reportId);
+      
+      if (!report || report.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+
+      await storage.deleteAnalysisReport(reportId);
+      res.sendStatus(204);
+    } catch (error) {
+      res.status(500).json({ message: "Error deleting analysis report" });
     }
   });
 
@@ -269,7 +285,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Convert stored report to AIAnalysisResult format
-      const analysisResult = {
+      const analysisResult: any = {
         insights: report.insights || [],
         improvements: report.improvements || [],
         metrics: report.metrics || {},

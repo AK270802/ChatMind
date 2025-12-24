@@ -21,71 +21,76 @@ export interface AIModelClient {
   generateResponse(messages: AIMessage[]): Promise<AIResponse>;
 }
 
-export class OllamaClient implements AIModelClient {
-  name = 'ollama';
-  private baseUrl: string;
+export class OpenRouterClient implements AIModelClient {
+  name = 'openrouter';
+  private apiKey: string;
   private model: string;
+  private siteUrl: string;
+  private siteName: string;
 
-  constructor(baseUrl: string = process.env.OLLAMA_BASE_URL || 'http://localhost:11434', 
-              model: string = process.env.OLLAMA_MODEL || 'llama2') {
-    this.baseUrl = baseUrl;
+  constructor(apiKey: string = process.env.OPENROUTER_API_KEY || '', 
+              model: string = process.env.OPENROUTER_MODEL || 'xiaomi/mimo-v2-flash') {
+    this.apiKey = apiKey;
     this.model = model;
+    this.siteUrl = process.env.FRONTEND_URL || 'http://localhost:5000';
+    this.siteName = 'ChatMind';
   }
 
   async isAvailable(): Promise<boolean> {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-      
-      const response = await fetch(`${this.baseUrl}/api/tags`, {
-        method: 'GET',
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      return response.ok;
-    } catch (error) {
-      console.log(`Ollama not available: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      return false;
-    }
+    return !!this.apiKey;
   }
 
   async generateResponse(messages: AIMessage[]): Promise<AIResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/generate`, {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`,
+          'HTTP-Referer': this.siteUrl,
+          'X-Title': this.siteName,
         },
         body: JSON.stringify({
           model: this.model,
-          prompt: messages.map(msg => `${msg.role}: ${msg.content}`).join('\n'),
-          stream: false,
-          options: {
-            temperature: 0.7,
-            top_p: 0.9,
-            num_predict: 2000,
-          }
+          messages: messages,
+          temperature: 0.7,
+          top_p: 0.9,
+          include_reasoning: true // Request reasoning if available
         })
       });
 
       if (!response.ok) {
-        throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`OpenRouter API error: ${response.status} ${errorData.error?.message || response.statusText}`);
       }
 
       const data = await response.json();
-      return {
-        content: data.response,
+      const choice = data.choices[0];
+      
+      // Handle reasoning details if present
+      // Some models return reasoning_content, others might put it in content
+      // The user asked to "Preserve reasoning details"
+      let content = choice.message.content;
+      
+      // If there's reasoning content separate from main content, we might want to log it or include it
+       if (choice.message.reasoning) {
+         console.log('Reasoning details found');
+         // Append reasoning to content to preserve it in conversation history
+         content = `<reasoning>\n${choice.message.reasoning}\n</reasoning>\n\n${content}`;
+       }
+ 
+       return {
+        content: content,
         model: this.model,
         usage: {
-          prompt_tokens: data.prompt_eval_count || 0,
-          completion_tokens: data.eval_count || 0,
-          total_tokens: (data.prompt_eval_count || 0) + (data.eval_count || 0)
+          prompt_tokens: data.usage?.prompt_tokens || 0,
+          completion_tokens: data.usage?.completion_tokens || 0,
+          total_tokens: data.usage?.total_tokens || 0
         }
       };
     } catch (error) {
-      console.error('Ollama API call failed:', error);
-      throw new Error(`Ollama request failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('OpenRouter API call failed:', error);
+      throw new Error(`OpenRouter request failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }
@@ -205,10 +210,12 @@ export class MultiModelClient {
   private enabledModels: string[];
 
   constructor() {
-    this.enabledModels = (process.env.AI_MODELS_ENABLED || 'ollama,openai,gemini').split(',');
+    this.enabledModels = (process.env.AI_MODELS_ENABLED || 'openrouter,openai,gemini')
+      .split(',')
+      .map(model => model.trim().toLowerCase());
     
     this.clients = [
-      new OllamaClient(),
+      new OpenRouterClient(),
       new OpenAIClient(),
       new GeminiClient()
     ].filter(client => this.enabledModels.includes(client.name));

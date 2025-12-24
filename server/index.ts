@@ -27,6 +27,7 @@ app.use(cors({
     const allowedOrigins = [
       'http://localhost:5173', 
       'http://localhost:3000',
+      'http://localhost:5000',
       'https://huggingface.co',
       'https://*.hf.space',
       'https://chatmind-m2rf.onrender.com', // Render domain
